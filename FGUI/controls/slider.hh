@@ -13,39 +13,53 @@
 
 namespace fgui {
 
-	class slider : public fgui::element {
+	class slider final : public fgui::element {
 	public:
 		slider();
 
 		// draw the element
-		void draw();
+		void draw() override final;
 
 		// set a custom value for the element
-		void set_value(float value);
+		inline void set_value(const float &value) noexcept {
+
+			m_value = value;
+		}
 
 		// get the current value of the element
-		float get_value();
+		inline float get_value() const noexcept {
+
+			return m_value;
+		}
 
 		// set the boundaries of the element
-		void set_boundaries(float min, float max);
+		inline void set_boundaries(const float &min, const float &max) noexcept {
+
+			m_min = min;
+			m_max = max;
+		}
 
 		// set the min and max custom text
-		void set_boundaries_text(std::string min_text, std::string max_text);
+		inline void set_boundaries_text(const std::string_view min_text, const std::string_view max_text) noexcept {
+
+			m_min_text = min_text;
+			m_max_text = max_text;
+		}
 
 		// handle keyboard and mouse input
-		void handle_input();
+		void handle_input() override final;
 
 		// handle the element updates
-		void update();
+		void update() override final;
 
 		// element tooltip
-		void tooltip();
+		void tooltip() override final;
 
 		// save the element state
-		void save(const std::string& file_name, nlohmann::json& json_module);
+		void save(nlohmann::json& json_module) override final;
 
 		// load the element state
-		void load(const std::string& file_name);
+		void load(const std::string_view file_name) override final;
 	private:
 
 		float m_value;

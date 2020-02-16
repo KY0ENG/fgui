@@ -6,108 +6,65 @@
 #include "handler.hh"
 #include "../dependencies/aliases.hh"
 
-void fgui::handler::register_window(std::shared_ptr<fgui::container> window) {
-
-	m_windows.emplace_back(window);
-}
-
-//---------------------------------------------------------
 void fgui::handler::render_window() {
 
-	bool overlaying_window_clicked = false;
-
 	if (m_input_state == fgui::input_state::UNLOCKED) {
-
-		// enable input
-		fgui::input.poll_input();
+		
+		// listen for input
+		fgui::input_system::listen();
 	}
 
 	// bindings
-	for (auto &binded_key : m_binds) {
+	for (std::pair<const int, std::shared_ptr<fgui::container>> &binded_key : m_binds) {
 
 		// toggle the window on and off
-		if (fgui::input.get_key_press(binded_key.first))
+		if (fgui::input_system::key_press(binded_key.first))
 			binded_key.second->set_state(!binded_key.second->get_state());
 	}
+	
+	// check if the notifications are registered first
+	if (m_notifications) {
 
-	for (std::size_t i = 0; i < m_windows.size(); i++) {
+		// draw and update notifications
+		m_notifications->update();
+		m_notifications->draw();
+		m_notifications->handle_input();
+	}
 
-		// main window 
-        auto main_window = m_windows.at(i);
-
-		if (main_window->get_state()) {
+	for (std::shared_ptr<fgui::container> window : m_windows) {
+		
+		if (window->get_state()) {
 
 			// draw and update
-        	main_window->update();
-       		main_window->draw();
+        	window->update();
+       		window->draw();
 
 			// draw cursors
 			draw_cursors();
 		}
-
-		// other window
-        auto other_window = m_windows.at(m_windows.size() - 1 - i);
-
-        if (other_window && other_window->hovering()) {
-
-            if (!overlaying_window_clicked && fgui::input.get_key_press(MOUSE_LEFT)) {
-
-                overlaying_window_clicked = true;
-                
-				m_windows.erase(m_windows.end() - i - 1);    
-				m_windows.push_back(other_window);
-            }
-        }
     }
 }
 
 //---------------------------------------------------------
-void fgui::handler::set_key(fgui::key key, std::shared_ptr<fgui::container> window) {
-
-	if (window)
-		m_binds[key] = window;
-
-	else if (!window)
-		m_binds.erase(key);
-}
-
-//---------------------------------------------------------
-void fgui::handler::set_cursor(fgui::cursor_type type) {
-
-	m_cursor_type = type;
-}
-
-//---------------------------------------------------------
-void fgui::handler::set_input_state(fgui::input_state state) {
-
-	m_input_state = state;
-}
-
-//---------------------------------------------------------
-fgui::style fgui::handler::get_style() {
-
-	return m_window_style;
-}
-
-//---------------------------------------------------------
-void fgui::handler::draw_cursors() {
+static void fgui::handler::draw_cursors() {
 
 	static fgui::point cursor = {0, 0};
 
 	// get the window style
-	auto style = get_style();
+	fgui::style style = get_style();
 
 	if (m_input_state == fgui::input_state::UNLOCKED) {
 
 		// get the cursor position
-		fgui::input.get_mouse_position(cursor.x, cursor.y);
+		cursor = fgui::input_system::mouse_position();
 	}
 
 	//
 	// cursor types
 	//
+	switch (m_cursor_type) {
 
-	if (m_cursor_type == fgui::cursor_type::ARROW) {
+		case fgui::cursor_type::ARROW: {
 
 		fgui::render.rect(cursor.x + 1, cursor.y, 1, 17, fgui::color(style.cursor.at(1)));
 
@@ -137,9 +94,11 @@ void fgui::handler::draw_cursors() {
 
 		fgui::render.rect(cursor.x + 8, cursor.y + 14, 1, 4, fgui::color(style.cursor.at(0)));
 		fgui::render.rect(cursor.x + 9, cursor.y + 16, 1, 2, fgui::color(style.cursor.at(0)));
+
+		break;
 	}
 
-	else if (m_cursor_type == fgui::cursor_type::IBEAM) {
+	case fgui::cursor_type::IBEAM: {
 
 		fgui::render.rect(cursor.x - 1, cursor.y - 1, 6 + 2, 1 + 2, fgui::color(style.cursor.at(1)));
 		fgui::render.rect(cursor.x, cursor.y, 7, 1, fgui::color(style.cursor.at(0)));
@@ -149,9 +108,11 @@ void fgui::handler::draw_cursors() {
 
 		fgui::render.rect(cursor.x - 1, cursor.y - 1 + 9, 6 + 2, 1 + 2, fgui::color(style.cursor.at(1)));
 		fgui::render.rect(cursor.x, cursor.y + 9, 7, 1, fgui::color(style.cursor.at(0)));
+
+		break;
 	}
 
-	else if (m_cursor_type == fgui::cursor_type::HAND) {
+	case fgui::cursor_type::HAND: {
 
 		fgui::render.rect(cursor.x - 5 + 6, cursor.y + 5 + 5 + -5, 7, 9, fgui::color(style.cursor.at(0)));
 		fgui::render.rect(cursor.x - 5, cursor.y + 5 + 7 + -5, 1, 2, fgui::color(style.cursor.at(1)));
@@ -189,9 +150,11 @@ void fgui::handler::draw_cursors() {
 			fgui::render.rect(cursor.x - 5 + 10 + i, cursor.y + 5 + 14 + i + -5, 1, 1, fgui::color(style.cursor.at(1)));
 			fgui::render.rect(cursor.x - 5 + 4 + i, cursor.y + 5 + 13 + i + -5, 1, 1, fgui::color(style.cursor.at(1)));
 		}
+
+		break;
 	}
 
-	else if (m_cursor_type == fgui::cursor_type::PIPETTE) {
+	case fgui::cursor_type::PIPETTE: {
 
 		fgui::render.rect(cursor.x, cursor.y + 14 + -15, 1, 1, fgui::color(style.cursor.at(1)));
 
@@ -216,9 +179,11 @@ void fgui::handler::draw_cursors() {
 		fgui::render.rect(cursor.x + 9, cursor.y + 2 + -15, 3, 6, fgui::color(style.cursor.at(1)));
 		fgui::render.rect(cursor.x + 11, cursor.y + -15, 3, 5, fgui::color(style.cursor.at(1)));
 		fgui::render.rect(cursor.x + 10, cursor.y + 1 + -15, 5, 3, fgui::color(style.cursor.at(1)));
+
+		break;
 	}
 
-	else if (m_cursor_type == fgui::cursor_type::RESIZE) {
+	case fgui::cursor_type::RESIZE: {
 		
 		// up arrow
 		fgui::render.rect(cursor.x - 5, cursor.y - 1, 5, 1, fgui::color(style.cursor.at(0)));
@@ -232,9 +197,11 @@ void fgui::handler::draw_cursors() {
 		fgui::render.rect(cursor.x - 5, cursor.y + 11, 5, 1, fgui::color(style.cursor.at(0)));
 		fgui::render.rect(cursor.x - 4, cursor.y + 12, 3, 1, fgui::color(style.cursor.at(0)));
 		fgui::render.rect(cursor.x - 3, cursor.y + 13, 1, 1, fgui::color(style.cursor.at(0)));
+
+		break;
 	}
 
-	else if (m_cursor_type == fgui::cursor_type::MOVE) {
+	case fgui::cursor_type::MOVE: {
 		
 		// up arrow
 		fgui::render.rect(cursor.x - 5, cursor.y - 1, 5, 1, fgui::color(style.cursor.at(0)));
@@ -259,5 +226,12 @@ void fgui::handler::draw_cursors() {
 		fgui::render.rect(cursor.x - 5 + 8, cursor.y + 11 - 7, 1, 5, fgui::color(style.cursor.at(0)));
 		fgui::render.rect(cursor.x - 4 + 8, cursor.y + 12 - 7, 1, 3, fgui::color(style.cursor.at(0)));
 		fgui::render.rect(cursor.x - 3 + 8, cursor.y + 13 - 7, 1, 1, fgui::color(style.cursor.at(0)));
+
+		break;
+	}
+
+	case fgui::cursor_type::NONE:
+		return;
+	
 	}
 }

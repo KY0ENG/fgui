@@ -22,21 +22,28 @@
 #include "controls/colorlist.hh"
 #include "controls/container.hh"
 #include "dependencies/aliases.hh"
+#include "notifications/notifications.hh"
 
 #pragma region MACROS
 
-#define REGISTER_TAB( tab, x, y, font, parent, page ) \
+#define REGISTER_TAB( tab, x, y, layout, font, parent, page ) \
 { \
     tab = std::make_shared<fgui::tabs>(); \
     tab->set_position(x, y); \
     tab->set_font(font); \
-    parent->add_control(tab, page, false);\
+    tab->set_layout(layout); \
+    parent->add_control(tab, page, true);\
 } \
 
 #define REGISTER_CURSOR( cursor_type, input_state ); \
 { \
     fgui::handler::set_cursor(cursor_type); \
 	fgui::handler::set_input_state(input_state); \
+} \
+
+#define REGISTER_NOTIFICATIONS(x, y, notification_font ); \
+{ \
+    fgui::handler::register_notifications(x, y, notification_font); \
 } \
 
 #define ADD_BUTTON( element, x, y, name, width, height, font, parent, page ) \
@@ -182,13 +189,14 @@
     parent->add_control(element, page); \
 } \
 
-#define ADD_WINDOW( window, x, y, title, width, height, key, font ) \
+#define ADD_WINDOW( window, x, y, title, width, height, key, font, resizeable ) \
 { \
     window = std::make_shared<fgui::container>(); \
     window->set_position(x, y); \
     window->set_title(title); \
     window->set_size(width, height); \
     window->set_font(font); \
+    window->set_resize_state(resizeable); \
 \
 \
     fgui::handler::register_window(window); \
@@ -212,7 +220,7 @@
     element->set_tooltip(tooltip); \
 \
 
-// button and comboboxes
+// button, comboboxes and containers
 #define ADD_FUNCTION( element, function ) \
     element->set_function(function); \
 \

@@ -13,36 +13,49 @@
 
 namespace fgui {
 
-	class tabs : public fgui::element {
+	class tabs final : public fgui::element {
 	public:
 		tabs();
 
 		// draw the element
-		void draw();
+		void draw() override final;
 
 		// adds a new tab
-		void add_tab(std::string tab_name);
+		inline void add_tab(const std::string_view tab_name) noexcept {
+
+			m_info.push_back( { tab_name } );
+		}
 
 		// get the current tab selected
-		int get_index();
+		inline std::size_t get_index() const noexcept {
+
+			return m_index;
+		} 
+
+		// set the tab layout
+		inline void set_layout(const fgui::tab_layout tab_layout) {
+			
+			m_tab_layout = tab_layout;
+		}
 
 		// handle keyboard and mouse input	
-		void handle_input();
+		void handle_input() override final;
 		
 		// handle the element updates
-		void update();
+		void update() override final;
 
 		// element tooltip
-		void tooltip();
+		void tooltip() override final;
 
 		// save the element state
-		void save(const std::string& file_name, nlohmann::json& json_module);
+		void save(nlohmann::json& json_module) override final;
 
 		// load the element state
-		void load(const std::string& file_name);
+		void load(const std::string_view file_name) override final;
 	private:
 
-		int m_selected_tab;
-		std::vector<fgui::item_info> m_info;
+		std::size_t m_index;
+		fgui::tab_layout m_tab_layout;
+		std::vector<fgui::detail::item_info> m_info;
 	};
 }
